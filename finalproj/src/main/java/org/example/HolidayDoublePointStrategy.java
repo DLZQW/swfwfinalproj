@@ -9,8 +9,8 @@ public class HolidayDoublePointStrategy implements PointStrategy {
   }
 
   @Override
-  public int calculatePoints(ExerciseRecord record) {
+  public int calculatePoints(Member member, ExerciseRecord record) {
     // 取得原基礎分數後直接乘以 2
-    return baseStrategy.calculatePoints(record) * 2;
+    return baseStrategy.calculatePoints(member, record) * 2;
   }
 }

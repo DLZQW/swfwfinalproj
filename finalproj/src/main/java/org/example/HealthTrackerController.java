@@ -3,7 +3,6 @@ package org.example;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,11 +25,15 @@ public class HealthTrackerController {
     // 改成下面這樣，去掉前面的型態，讓它直接存入全域變數中
     this.config = new ExerciseWeightConfig();
 
-    PointStrategy standardStrategy = new StandardPointStrategy(this.config);
-    PointStrategy penaltyStrategy = new LateLoggingPenaltyStrategy(standardStrategy, LocalDate.now());
+    // 使用工廠模式建立計分策略 (Factory Pattern)
+    PointStrategy penaltyStrategy = PointStrategyFactory.createStrategy("LATE_PENALTY", this.config, LocalDate.now());
 
     scoringService = new ExerciseScoringService();
     scoringService.setStrategy(penaltyStrategy);
+
+    // 註冊觀察者 (Observer Pattern)
+    scoringService.addObserver(new EmailNotificationObserver());
+    scoringService.addObserver(new AchievementObserver());
   }
 
   // [API 1] 取得家庭與成員資訊 (對應原本選單的「查看積分」)
@@ -46,13 +49,13 @@ public class HealthTrackerController {
   // [API 2] 新增運動紀錄
   @PostMapping("/exercise")
   public String recordExercise(@RequestParam("memberId") String memberId,
-                               @RequestParam("exerciseType") String exerciseType,
-                               @RequestParam("duration") int duration) {
+      @RequestParam("exerciseType") String exerciseType,
+      @RequestParam("duration") int duration) {
 
     Member targetMember = family.getMembers().stream()
-            .filter(m -> m.getMemberId().equals(memberId))
-            .findFirst()
-            .orElse(null);
+        .filter(m -> m.getMemberId().equals(memberId))
+        .findFirst()
+        .orElse(null);
 
     if (targetMember == null) {
       return "找不到該成員！";
@@ -61,8 +64,8 @@ public class HealthTrackerController {
     // 紀錄舊的分數
     int oldPoints = targetMember.getPersonalPoints();
 
-    // 💡 這裡直接把網頁傳來的 exerciseType (字串) 塞進去就好，不用再轉成 Enum 了！
-    ExerciseRecord record = new ExerciseRecord(java.util.UUID.randomUUID().toString(), LocalDate.now(), exerciseType, duration);
+    // 使用工廠模式建立運動紀錄 (Factory Pattern)
+    ExerciseRecord record = ExerciseRecordFactory.createRecord(exerciseType, duration);
     scoringService.recordAndScore(targetMember, record);
 
     // 計算剛剛獲得的分數差額
@@ -70,8 +73,9 @@ public class HealthTrackerController {
 
     // 回傳更詳細的遊戲化資訊
     return String.format("✅ 成功！%s 完成了 %d 分鐘的 %s，獲得了 %d 點積分！",
-            targetMember.getName(), duration, exerciseType, earnedPoints); // 確保這裡是 exerciseType 字串
+        targetMember.getName(), duration, exerciseType, earnedPoints); // 確保這裡是 exerciseType 字串
   }
+
   // [新增 API] 取得所有可用的運動項目與權重
   @GetMapping("/exercises")
   public Map<String, Integer> getExercises() {
@@ -90,7 +94,7 @@ public class HealthTrackerController {
   // [新增 API] 動態新增運動與權重
   @PostMapping("/exercise-type")
   public String addExerciseType(@RequestParam("name") String name,
-                                @RequestParam("weight") int weight) {
+      @RequestParam("weight") int weight) {
     config.addExercise(name, weight);
     return "✅ 成功新增運動項目：" + name + " (權重: " + weight + ")";
   }
@@ -99,9 +103,9 @@ public class HealthTrackerController {
   @DeleteMapping("/member/{id}")
   public String deleteMember(@PathVariable("id") String id) {
     Member target = family.getMembers().stream()
-            .filter(m -> m.getMemberId().equals(id))
-            .findFirst()
-            .orElse(null);
+        .filter(m -> m.getMemberId().equals(id))
+        .findFirst()
+        .orElse(null);
     if (target != null) {
       family.removeMember(target);
     }

@@ -13,8 +13,8 @@ public class LateLoggingPenaltyStrategy implements PointStrategy {
   }
 
   @Override
-  public int calculatePoints(ExerciseRecord record) {
-    int basePoints = baseStrategy.calculatePoints(record);
+  public int calculatePoints(Member member, ExerciseRecord record) {
+    int basePoints = baseStrategy.calculatePoints(member, record);
 
     long daysLate = ChronoUnit.DAYS.between(record.getExerciseDate(), currentDate);
 
