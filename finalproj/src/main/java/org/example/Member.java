@@ -8,27 +8,26 @@ public class Member {
   private String memberId;
   private String name;
   private int personalPoints;
-  private List<ExerciseRecord> exerciseRecords; // 組合關係 (Composition)
-  private MemberState state; // 狀態模式 (State Pattern)
+  private List<ExerciseRecord> exerciseRecords;
+  private MemberState state;
+  private List<String> achievements; // 🌟 新增：存放成就的列表
 
   public Member(String memberId, String name) {
     this.memberId = memberId;
     this.name = name;
     this.personalPoints = 0;
     this.exerciseRecords = new ArrayList<>();
-    this.state = new NormalState(); // 預設為正常狀態
+    this.state = new NormalState();
+    this.achievements = new ArrayList<>(); // 🌟 初始化
   }
 
-  // 新增運動紀錄 (由 Member 負責管理自己的紀錄)
   public void addExerciseRecord(ExerciseRecord record) {
     if (record != null) {
       this.exerciseRecords.add(record);
-      // 觸發狀態轉換
       this.state.transitionState(this, record);
     }
   }
 
-  // 取得不可變的紀錄列表，保護內部狀態封裝
   public List<ExerciseRecord> getExerciseRecords() {
     return Collections.unmodifiableList(exerciseRecords);
   }
@@ -41,15 +40,25 @@ public class Member {
     this.personalPoints = Math.max(0, this.personalPoints - points);
   }
 
-  // Getters & Setters
+  // 🌟 新增：寫入成就的方法
+  public void addAchievement(String title) {
+    if (!this.achievements.contains(title)) {
+      this.achievements.add(title);
+    }
+  }
+
+  // 🌟 新增：讓 Spring Boot 能轉成 JSON 給網頁
+  public List<String> getAchievements() {
+    return Collections.unmodifiableList(achievements);
+  }
+
   public String getMemberId() { return memberId; }
   public String getName() { return name; }
   public int getPersonalPoints() { return personalPoints; }
-  
+
   public MemberState getState() { return state; }
   public void setState(MemberState state) { this.state = state; }
 
-  // 提供給 JSON 序列化（前端可以直接讀取）
   public String getStateName() {
     return this.state.getStateName();
   }

@@ -184,13 +184,26 @@
                     if (member.stateName === '疲勞') stateColor = '#e74c3c'; // 疲勞 (紅色)
                     if (member.stateName === '活力充沛') stateColor = '#f1c40f'; // 活力充沛 (黃金色)
 
-                    li.innerHTML = `${member.name} 
+                    // 🌟 動態生成成就徽章 HTML
+                    let badgesHtml = '';
+                    if (member.achievements && member.achievements.length > 0) {
+                        badgesHtml = '<div style="margin-top: 8px; margin-left: 5px;">';
+                        member.achievements.forEach(ach => {
+                            // 採用漸層橘金色的立體質感標籤
+                            badgesHtml += `<span style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; margin-right: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">🏆 ${ach}</span>`;
+                        });
+                        badgesHtml += '</div>';
+                    }
+
+                    // 將原本的資訊與徽章合併渲染
+                    li.innerHTML = `${member.name}
                         <span style="background: ${stateColor}; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; vertical-align: middle;">
                             ${member.stateName || '正常'}
                         </span>
                         <span style="color:#777; font-size:14px; margin-left: 8px;">
                             (個人積分: <span style="color:#fff;">${member.personalPoints}</span>, 倍率: x${member.pointMultiplier || 1.0})
-                        </span>`;
+                        </span>
+                        ${badgesHtml}`;
                     memberList.appendChild(li);
 
                     const option = document.createElement('option');
