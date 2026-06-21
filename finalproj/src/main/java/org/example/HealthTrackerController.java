@@ -39,10 +39,21 @@ public class HealthTrackerController {
   // [API 1] 取得家庭與成員資訊 (對應原本選單的「查看積分」)
   @GetMapping("/family/info")
   public Map<String, Object> getFamilyInfo() {
+    // 檢查所有家庭成員的怠惰扣分 (太久未運動)
+    for (Member m : family.getMembers()) {
+      int penalty = m.checkAndApplyInactivityPenalty();
+      if (penalty > 0) {
+        System.out.println("❌ [怠惰扣分] " + m.getName() + " 因太久未運動，扣除 " + penalty + " 點積分！");
+      }
+    }
+
     Map<String, Object> response = new HashMap<>();
     response.put("familyName", family.getFamilyName());
     response.put("totalPoints", family.getTotalFamilyPoints());
     response.put("members", family.getMembers());
+    response.put("familyGoalPoints", family.getFamilyGoalPoints());
+    response.put("familyGoalPercent", family.getFamilyGoalPercent());
+    response.put("familyWorkoutStats", family.getFamilyWorkoutStats());
     return response;
   }
 
@@ -64,16 +75,78 @@ public class HealthTrackerController {
     // 紀錄舊的分數
     int oldPoints = targetMember.getPersonalPoints();
 
+    // 檢查是否延續連擊，以顯示在成功訊息中
+    int initialStreak = targetMember.calculateCurrentStreak();
+    boolean willGainStreak = false;
+    int gainStreakDay = 0;
+    int streakBonusCalculated = 0;
+    if (!targetMember.getExerciseRecords().isEmpty()) {
+      ExerciseRecord lastRecord = targetMember.getExerciseRecords().get(targetMember.getExerciseRecords().size() - 1);
+      long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(lastRecord.getExerciseDate(), LocalDate.now());
+      if (daysBetween == 1) {
+        willGainStreak = true;
+        gainStreakDay = initialStreak + 1;
+        streakBonusCalculated = Math.min(50, (gainStreakDay - 1) * 10);
+      }
+    }
+
+    // 取得當前的基礎計分策略 (動態取得以確保系統日期正確)
+    PointStrategy baseStrategy = PointStrategyFactory.createStrategy("LATE_PENALTY", this.config, LocalDate.now());
+
+    // 檢查是否有其他家人今天也運動了
+    boolean partnerExercised = family.getMembers().stream()
+        .filter(m -> !m.getMemberId().equals(memberId))
+        .anyMatch(m -> m.getExerciseRecords().stream()
+            .anyMatch(r -> r.getExerciseDate().equals(LocalDate.now()))
+        );
+
+    // 如果今天有其他家人運動，則用裝飾者模式疊加 CooperativePointStrategy
+    PointStrategy activeStrategy = partnerExercised ? new CooperativePointStrategy(baseStrategy, true) : baseStrategy;
+    scoringService.setStrategy(activeStrategy);
+
     // 使用工廠模式建立運動紀錄 (Factory Pattern)
     ExerciseRecord record = ExerciseRecordFactory.createRecord(exerciseType, duration);
     scoringService.recordAndScore(targetMember, record);
+
+    // 溯及既往：如果觸發了雙人同行，把今日稍早運動但尚未享有加成的其他成員紀錄也補上 20%
+    int retroPointsAdded = 0;
+    if (partnerExercised) {
+      for (Member otherMember : family.getMembers()) {
+        if (!otherMember.getMemberId().equals(memberId)) {
+          for (ExerciseRecord otherRecord : otherMember.getExerciseRecords()) {
+            if (otherRecord.getExerciseDate().equals(LocalDate.now()) && !otherRecord.isCoopBonusApplied()) {
+              int bonusPoints = (int) (otherRecord.getPointsEarned() * 0.2);
+              if (bonusPoints > 0) {
+                otherMember.addPoints(bonusPoints);
+                otherRecord.setPointsEarned(otherRecord.getPointsEarned() + bonusPoints);
+                otherRecord.setCoopBonusApplied(true);
+                retroPointsAdded += bonusPoints;
+                System.out.println("👥 [協力補發] 幫 " + otherMember.getName() + " 的運動紀錄 [" + otherRecord.getExerciseName() + "] 補發 " + bonusPoints + " 點協力積分！");
+              } else {
+                otherRecord.setCoopBonusApplied(true);
+              }
+            }
+          }
+        }
+      }
+    }
 
     // 計算剛剛獲得的分數差額
     int earnedPoints = targetMember.getPersonalPoints() - oldPoints;
 
     // 回傳更詳細的遊戲化資訊
-    return String.format("✅ 成功！%s 完成了 %d 分鐘的 %s，獲得了 %d 點積分！",
-        targetMember.getName(), duration, exerciseType, earnedPoints); // 確保這裡是 exerciseType 字串
+    String responseMessage = String.format("✅ 成功！%s 完成了 %d 分鐘的 %s，獲得了 %d 點積分！",
+        targetMember.getName(), duration, exerciseType, earnedPoints);
+    if (willGainStreak && streakBonusCalculated > 0) {
+      responseMessage += String.format(" 🔥 連擊第 %d 天！獲得額外 +%d 點連擊獎勵！", gainStreakDay, streakBonusCalculated);
+    }
+    if (partnerExercised) {
+      responseMessage += " 👥 觸發雙人同行協力加成，點數獲得額外 1.2 倍加成！";
+      if (retroPointsAdded > 0) {
+        responseMessage += " 已為今日稍早運動的其他家人自動補發了 " + retroPointsAdded + " 點協力積分！";
+      }
+    }
+    return responseMessage;
   }
 
   // [新增 API] 取得所有可用的運動項目與權重

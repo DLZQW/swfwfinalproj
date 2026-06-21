@@ -11,10 +11,29 @@
             background-color: #121212; color: #e0e0e0; padding: 20px; margin: 0;
         }
         .container {
-            max-width: 500px; margin: 40px auto; background: #1e1e1e; padding: 30px;
+            max-width: 1050px; margin: 40px auto; background: #1e1e1e; padding: 30px;
             border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); border: 1px solid #333; position: relative;
         }
         h1, h2, h3 { color: #ffffff; letter-spacing: 0.5px; margin-top: 0;}
+
+        /* ================= 📊 雙欄儀表板佈局 ================= */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 25px;
+            margin-top: 30px;
+            align-items: start;
+        }
+        .dashboard-col {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        @media (max-width: 850px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
         /* ================= ⚙️ 設定按鈕與動畫 ================= */
         .settings-btn {
@@ -89,35 +108,72 @@
 <body>
 
 <div class="container">
+    <button class="settings-btn" style="right: 65px;" onclick="openRulesModal()" title="遊戲化規則">📜</button>
     <button class="settings-btn" onclick="openModal()" title="系統設定">⚙️</button>
 
-    <h1>🏆 健康積分板</h1>
+    <h1>🏆 健康積分儀表板</h1>
 
-    <div class="card">
-        <h2 id="familyName">載入中...</h2>
-        <p style="color: #bbb;">家庭總積分：<strong id="familyPoints" style="font-size: 32px; color: #f1c40f;">0</strong> 點</p>
-        <ul id="memberList" style="line-height: 1.8; color: #ccc; padding-left: 20px;"></ul>
+    <!-- 📊 雙欄式佈局容器 -->
+    <div class="dashboard-grid">
+        
+        <!-- 左欄：家庭積分板、個人指標卡片、全體運動統計 -->
+        <div class="dashboard-col">
+            <div class="card">
+                <h2 id="familyName">載入中...</h2>
+                <p style="color: #bbb; margin-bottom: 8px;">家庭總積分：<strong id="familyPoints" style="font-size: 32px; color: #f1c40f;">0</strong> 點</p>
+                
+                <!-- 🎯 家庭旅遊基金目標進度條 -->
+                <div id="familyGoalContainer" style="margin-bottom: 20px; font-size: 13px; color: #aaa;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>🎯 全家旅遊基金解鎖進度 (500點)</span>
+                        <span id="familyGoalPercentText">0%</span>
+                    </div>
+                    <div style="width: 100%; background: #333; height: 10px; border-radius: 5px; overflow: hidden; border: 1px solid #444;">
+                        <div id="familyGoalBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #f1c40f, #e67e22); transition: width 0.5s ease-out;"></div>
+                    </div>
+                    <div id="familyGoalRemaining" style="font-size: 11px; color: #888; margin-top: 5px; text-align: right;"></div>
+                </div>
+
+                <h3 style="border-top: 1px solid #333; padding-top: 15px; margin-top: 15px; margin-bottom: 10px; font-size: 15px; color: #fff;">👥 成員狀態與個人指標</h3>
+                <div id="memberList" style="display: flex; flex-direction: column; gap: 15px; padding: 0;"></div>
+            </div>
+
+            <!-- 📊 全家運動統計卡片 -->
+            <div class="card" id="familyStatsCard" style="display: none; border-color: #34495e;">
+                <h3 style="color: #3498db; font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                    <span>📊 全家運動項目累計</span>
+                </h3>
+                <div id="familyStatsContainer" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+            </div>
+        </div>
+
+        <!-- 右欄：📝 登錄運動紀錄表單 -->
+        <div class="dashboard-col">
+            <div class="card" style="border-color: #3498db;">
+                <h2 style="margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">📝 登錄運動紀錄</h2>
+                
+                <div class="form-group">
+                    <label style="color: #bbb; font-size: 14px;">選擇成員</label>
+                    <select id="memberSelect"></select>
+                </div>
+
+                <div class="form-group">
+                    <label style="color: #bbb; font-size: 14px;">運動種類</label>
+                    <select id="typeSelect"></select>
+                </div>
+
+                <div class="form-group">
+                    <label style="color: #bbb; font-size: 14px;">時間 (分鐘)</label>
+                    <input type="number" id="durationInput" placeholder="例如: 30" min="1">
+                </div>
+
+                <button class="btn-submit" onclick="submitExercise()">🚀 送出紀錄</button>
+                <div id="statusMessage" style="color: #2ecc71; text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px;"></div>
+            </div>
+        </div>
+
     </div>
 
-
-    <h2 style="margin-top: 30px;">📝 登錄紀錄</h2>
-    <div class="form-group">
-        <label style="color: #bbb; font-size: 14px;">選擇成員</label>
-        <select id="memberSelect"></select>
-    </div>
-
-    <div class="form-group">
-        <label style="color: #bbb; font-size: 14px;">運動種類</label>
-        <select id="typeSelect"></select>
-    </div>
-
-    <div class="form-group">
-        <label style="color: #bbb; font-size: 14px;">時間 (分鐘)</label>
-        <input type="number" id="durationInput" placeholder="例如: 30" min="1">
-    </div>
-
-    <button class="btn-submit" onclick="submitExercise()">🚀 送出紀錄</button>
-    <div id="statusMessage" style="color: #2ecc71; text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px;"></div>
 </div>
 
 <div id="settingsModal" class="modal">
@@ -144,6 +200,108 @@
     </div>
 </div>
 
+<!-- 📜 遊戲化規則說明彈出視窗 -->
+<div id="rulesModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeRulesModal()">&times;</span>
+        <h2 style="border-bottom: 1px solid #444; padding-bottom: 15px; margin-bottom: 25px;">📜 遊戲化規則說明</h2>
+
+        <h3 style="color: #3498db; font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span>🔄 成員身心狀態規定</span>
+        </h3>
+        <div style="font-size: 13px; line-height: 1.6; color: #ccc; margin-bottom: 20px;">
+            <div style="margin-bottom: 12px;">
+                <span style="background: #2ecc71; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; vertical-align: middle;">正常</span>
+                <strong style="color: #2ecc71; font-size: 12px;">倍率 x1.0</strong>
+                <div style="color: #aaa; margin-left: 8px; margin-top: 4px; font-size: 12px;">
+                    • <strong>轉移條件</strong>：單次運動時間過長（<strong>&ge; 60 分鐘</strong>）會轉變為 <strong style="color: #e74c3c;">疲勞</strong>；累計運動次數達到 <strong>3 次以上</strong> 會進入 <strong style="color: #f1c40f;">活力充沛</strong>。
+                </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <span style="background: #e74c3c; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; vertical-align: middle;">疲勞</span>
+                <strong style="color: #e74c3c; font-size: 12px;">倍率 x0.5</strong>
+                <div style="color: #aaa; margin-left: 8px; margin-top: 4px; font-size: 12px;">
+                    • <strong>積分影響</strong>：此狀態下獲得的運動積分減半。<br>
+                    • <strong>恢復條件</strong>：進行<strong>輕度運動 (&le; 30 分鐘)</strong> 即可恢復至 <strong style="color: #2ecc71;">正常</strong> 狀態；若運動強度較高 (&gt; 30 分鐘) 則繼續維持疲勞。
+                </div>
+            </div>
+            <div>
+                <span style="background: #f1c40f; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; vertical-align: middle;">活力充沛</span>
+                <strong style="color: #f1c40f; font-size: 12px;">倍率 x1.5</strong>
+                <div style="color: #aaa; margin-left: 8px; margin-top: 4px; font-size: 12px;">
+                    • <strong>積分影響</strong>：此狀態下獲得的運動積分為 1.5 倍。<br>
+                    • <strong>轉移條件</strong>：若單次運動時間過長（<strong>&ge; 60 分鐘</strong>）會轉變為 <strong style="color: #e74c3c;">疲勞</strong>；若單次運動時間少於 15 分鐘，則退回 <strong style="color: #2ecc71;">正常</strong> 狀態。
+                </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <span style="background: #95a5a6; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; vertical-align: middle;">怠惰中</span>
+                <strong style="color: #95a5a6; font-size: 12px;">倍率 x0.5</strong>
+                <div style="color: #aaa; margin-left: 8px; margin-top: 4px; font-size: 12px;">
+                    • <strong>觸發條件</strong>：連續 3 天（含）以上未在系統登錄運動紀錄。<br>
+                    • <strong>恢復條件</strong>：只要登錄任意時間的運動，狀態將自動移轉回 <strong style="color: #2ecc71;">正常</strong>。
+                </div>
+            </div>
+        </div>
+
+        <h3 style="color: #e67e22; font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span>🏆 成就解鎖規則</span>
+        </h3>
+        <div style="font-size: 13px; line-height: 1.6; color: #ccc;">
+            <div style="margin-bottom: 10px; display: flex; flex-direction: column; gap: 2px;">
+                <span style="align-self: flex-start; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏆 初試身手</span>
+                <div style="color: #aaa; font-size: 12px; margin-left: 6px;">完成個人在系統中的<strong>第 1 次</strong>運動紀錄登錄。</div>
+            </div>
+            <div style="margin-bottom: 10px; display: flex; flex-direction: column; gap: 2px;">
+                <span style="align-self: flex-start; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏆 鋼鐵超人</span>
+                <div style="color: #aaa; font-size: 12px; margin-left: 6px;">單次持續運動時間達到 <strong>60 分鐘（含）以上</strong>。</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="align-self: flex-start; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏆 健康達人</span>
+                <div style="color: #aaa; font-size: 12px; margin-left: 6px;">個人累計總積分達到 <strong>100 點（含）以上</strong>。</div>
+            </div>
+        </div>
+
+        <h3 style="color: #2ecc71; font-size: 16px; margin-top: 25px; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span>📈 運動積分與協力加成規則</span>
+        </h3>
+        <div style="font-size: 13px; line-height: 1.6; color: #ccc;">
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #2ecc71;">🏃 基礎計分公式</strong>
+                <div style="color: #aaa; margin-left: 6px; font-size: 12px; margin-top: 2px;">
+                    單次運動積分 = <strong>運動時間 (分鐘) &times; 該運動項目權重 &times; 個人身心狀態倍率</strong>。
+                </div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #f1c40f;">🔥 連擊獎勵 (Streak Bonus)</strong> — <strong style="color: #f1c40f;">每天運動加分</strong>
+                <div style="color: #aaa; margin-left: 6px; font-size: 12px; margin-top: 2px;">
+                    若連續第 2 天（含）以上運動，當次運動額外獲得連擊獎勵分：<br>
+                    • 計算：<strong>(連擊天數 - 1) &times; 10 點</strong>，上限為 <strong>+50 點</strong>。連擊中斷則天數歸零。
+                </div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #e74c3c;">❌ 怠惰流失扣分 (Decay Penalty)</strong> — <strong style="color: #e74c3c;">太久沒運動扣分</strong>
+                <div style="color: #aaa; margin-left: 6px; font-size: 12px; margin-top: 2px;">
+                    • 觸發：若連續 <strong>4 天（含）以上</strong> 未運動，<strong>每天將扣除個人積分 5 點</strong>（扣至 0 點為止）。
+                </div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #3498db;">👥 雙人同行協力 (Cooperative Combo)</strong> — <strong style="color: #3498db;">額外 1.2 倍加成</strong>
+                <div style="color: #aaa; margin-left: 6px; font-size: 12px; margin-top: 2px;">
+                    當日若有 <strong>2 位或以上</strong> 的家庭成員進行運動，當天所有人的運動紀錄皆享有 <strong>1.2 倍</strong> 點數加成！<br>
+                    • <em>註：系統採用「溯及既往」機制，後登錄的成員會自動幫當天較早運動的家人補發 20% 協力積分。</em>
+                </div>
+            </div>
+            <div>
+                <strong style="color: #e67e22;">⏱️ 補登錄延遲懲罰 (Late Penalty)</strong>
+                <div style="color: #aaa; margin-left: 6px; font-size: 12px; margin-top: 2px;">
+                    • <strong>1 至 3 天內補登</strong>：該次運動積分打 <strong>8 折 (0.8x)</strong>。<br>
+                    • <strong>超過 3 天補登</strong>：該次運動不計分。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     window.onload = function() {
         fetchFamilyInfo();
@@ -157,9 +315,18 @@
     function closeModal() {
         document.getElementById('settingsModal').classList.remove('show');
     }
+    function openRulesModal() {
+        document.getElementById('rulesModal').classList.add('show');
+    }
+    function closeRulesModal() {
+        document.getElementById('rulesModal').classList.remove('show');
+    }
     window.onclick = function(event) {
         if (event.target == document.getElementById('settingsModal')) {
             closeModal();
+        }
+        if (event.target == document.getElementById('rulesModal')) {
+            closeRulesModal();
         }
     }
 
@@ -171,6 +338,37 @@
                 document.getElementById('familyName').innerText = data.familyName;
                 document.getElementById('familyPoints').innerText = data.totalPoints;
 
+                // 更新家庭目標進度條
+                const goalPercent = data.familyGoalPercent || 0;
+                document.getElementById('familyGoalPercentText').innerText = `${goalPercent}%`;
+                document.getElementById('familyGoalBar').style.width = `${goalPercent}%`;
+                const remaining = data.familyGoalPoints - data.totalPoints;
+                document.getElementById('familyGoalRemaining').innerText = remaining > 0 
+                    ? `距離解鎖旅遊基金目標還差 ${remaining} 點` 
+                    : `🎉 已成功解鎖家庭旅遊基金！`;
+
+                // 更新全家運動累計項目
+                const statsContainer = document.getElementById('familyStatsContainer');
+                const statsCard = document.getElementById('familyStatsCard');
+                statsContainer.innerHTML = '';
+                if (data.familyWorkoutStats && Object.keys(data.familyWorkoutStats).length > 0) {
+                    statsCard.style.display = 'block';
+                    for (const [name, count] of Object.entries(data.familyWorkoutStats)) {
+                        const tag = document.createElement('span');
+                        tag.style.background = '#2a2a2a';
+                        tag.style.border = '1px solid #444';
+                        tag.style.color = '#ccc';
+                        tag.style.padding = '5px 12px';
+                        tag.style.borderRadius = '20px';
+                        tag.style.fontSize = '12px';
+                        tag.style.display = 'inline-block';
+                        tag.innerHTML = `🏃 <strong>${name}</strong>: ${count} 次`;
+                        statsContainer.appendChild(tag);
+                    }
+                } else {
+                    statsCard.style.display = 'none';
+                }
+
                 const memberList = document.getElementById('memberList');
                 const memberSelect = document.getElementById('memberSelect');
                 const settingsMemberList = document.getElementById('settingsMemberList');
@@ -179,32 +377,71 @@
 
                 data.members.forEach(member => {
                     // 更新主畫面 (顯示狀態與點數倍率)
-                    const li = document.createElement('li');
                     let stateColor = '#2ecc71'; // 正常 (綠色)
-                    if (member.stateName === '疲勞') stateColor = '#e74c3c'; // 疲勞 (紅色)
-                    if (member.stateName === '活力充沛') stateColor = '#f1c40f'; // 活力充沛 (黃金色)
+                    let stateBg = 'rgba(46, 204, 113, 0.15)';
+                    if (member.stateName === '疲勞') {
+                        stateColor = '#e74c3c'; // 疲勞 (紅色)
+                        stateBg = 'rgba(231, 76, 60, 0.15)';
+                    }
+                    if (member.stateName === '活力充沛') {
+                        stateColor = '#f1c40f'; // 活力充沛 (黃金色)
+                        stateBg = 'rgba(241, 196, 15, 0.15)';
+                    }
+                    if (member.stateName === '怠惰中') {
+                        stateColor = '#95a5a6'; // 怠惰中 (灰色)
+                        stateBg = 'rgba(149, 165, 166, 0.15)';
+                    }
 
                     // 🌟 動態生成成就徽章 HTML
                     let badgesHtml = '';
                     if (member.achievements && member.achievements.length > 0) {
-                        badgesHtml = '<div style="margin-top: 8px; margin-left: 5px;">';
+                        badgesHtml = '<div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">';
                         member.achievements.forEach(ach => {
                             // 採用漸層橘金色的立體質感標籤
-                            badgesHtml += `<span style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; margin-right: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">🏆 ${ach}</span>`;
+                            badgesHtml += `<span style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">🏆 ${ach}</span>`;
                         });
                         badgesHtml += '</div>';
                     }
 
-                    // 將原本的資訊與徽章合併渲染
-                    li.innerHTML = `${member.name}
-                        <span style="background: ${stateColor}; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; vertical-align: middle;">
-                            ${member.stateName || '正常'}
-                        </span>
-                        <span style="color:#777; font-size:14px; margin-left: 8px;">
-                            (個人積分: <span style="color:#fff;">${member.personalPoints}</span>, 倍率: x${member.pointMultiplier || 1.0})
-                        </span>
-                        ${badgesHtml}`;
-                    memberList.appendChild(li);
+                    // 個人統計與週目標進度條 HTML
+                    let statsHtml = `
+                        <div style="margin-top: 10px; padding: 10px; background: #1e1e1e; border-radius: 8px; border: 1px solid #333; font-size: 12px; color: #bbb;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>🏃 總時間: <strong style="color: #fff;">${member.totalWorkoutDuration}</strong> 分鐘</span>
+                                <span>🔥 連擊: <strong style="color: #f1c40f;">${member.currentStreak}</strong> 天</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 11px;">
+                                <span>🎯 週目標 (${member.weeklyGoalMinutes} 分鐘)</span>
+                                <span>${member.weeklyGoalPercent}%</span>
+                            </div>
+                            <div style="width: 100%; background: #2a2a2a; height: 6px; border-radius: 3px; overflow: hidden; border: 1px solid #444;">
+                                <div style="width: ${member.weeklyGoalPercent}%; height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    `;
+
+                    // 建立成員的精美小卡片
+                    const cardDiv = document.createElement('div');
+                    cardDiv.style.background = '#252525';
+                    cardDiv.style.padding = '15px';
+                    cardDiv.style.borderRadius = '10px';
+                    cardDiv.style.border = '1px solid #3a3a3a';
+                    cardDiv.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 15px; color: #fff;">${member.name}</strong>
+                                <span style="background: ${stateBg}; color: ${stateColor}; border: 1px solid ${stateColor}; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; vertical-align: middle;">
+                                    ${member.stateName || '正常'}
+                                </span>
+                            </div>
+                            <span style="color:#aaa; font-size:12px;">
+                                積分: <strong style="color:#f1c40f;">${member.personalPoints}</strong> 點 (倍率: x${member.pointMultiplier || 1.0})
+                            </span>
+                        </div>
+                        ${badgesHtml}
+                        ${statsHtml}
+                    `;
+                    memberList.appendChild(cardDiv);
 
                     const option = document.createElement('option');
                     option.value = member.memberId; option.innerText = member.name;
